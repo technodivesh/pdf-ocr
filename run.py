@@ -6,11 +6,13 @@ import numpy as np
 import cv2 as cv
 from matplotlib import pyplot as plt 
 import os
+import math
 
 import settings
 
 from utils import PDFpage
 from read_pdf import ReadPdf
+from pprint import pprint
 
 DEBUG = settings.DEBUG
 
@@ -22,25 +24,12 @@ def show_wait_destroy(winname, img):
     cv.destroyWindow(winname)
 
 
-def get_contour_precedence(contour, cols):
-    origin = cv.boundingRect(contour)
-    return origin[1] * cols # + origin[0]
-
-def order_by_top_bottom(contour, rows):
+def ordering(contour, rows):
     origin = cv.boundingRect(contour)
     return origin[0] * rows # + origin[0]
 
-def get_contour_precedence2(contour, cols):
 
-    M = cv.moments(contour)
-    print(M)
-    cx = int(M['m10']/M['m00'])
-    cy = int(M['m01']/M['m00'])
-    print(cx,cy)
-    print("--------------------#----",len(contour), cy * cols )#+ cx)
-    return cy * cols # + cx
-
-def row_range_tuple(contours):
+def row_range_list(contours):
 
     range_list = []
     for i, cnt in enumerate(contours):
@@ -51,10 +40,7 @@ def row_range_tuple(contours):
             range_list.append((y,y+h))
         else:break
     
-    # print(range_list)
     return range_list
-
-
 
 
 
@@ -102,13 +88,19 @@ if __name__ == "__main__":
                 contours, hierarchy = cv.findContours(inverted_table, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
                 print("contours---",len(contours))
 
-                # contours = sorted(contours, key=lambda ctr: cv.boundingRect(ctr)[0] + cv.boundingRect(ctr))
-                # contours.sort(key=lambda x:get_contour_precedence(x, img.shape[1]))
-                # contours.sort(key=lambda x:get_contour_precedence2(x, img.shape[1]))
-
                 contours = list(filter(lambda x: len(x) > 2, contours))
-                contours.sort(key=lambda x:order_by_top_bottom(x, img.shape[0]))
-                row_range_tuple = row_range_tuple(contours)
+                contours.sort(key=lambda x:ordering(x, img.shape[0]))
+                row_range_list = row_range_list(contours)
+                table = dict.fromkeys(row_range_list,[])
+
+                for tup_range,value_list in table.items():
+                    table[tup_range] = list(filter(lambda cnt: tup_range[0] <  math.ceil(( cnt[0][0][1]+ cnt[1][0][1])/2)  < tup_range[1], contours ))
+                
+                pprint(table)
+                for k,v in table.items():
+                    print(k,len(v))
+
+# math.ceil((54+109)/2)
 
                 print(len(contours))
                 # contours = list(map(lambda x: len(x) > 2, contours))
@@ -116,9 +108,12 @@ if __name__ == "__main__":
                 # contours.sort(key=lambda x:get_contour_precedence2(x, img.shape[1]))
 
                 cv.drawContours(img, contours, -1, (0,255,0), -1)
-                for i,cnt in enumerate(contours):
+                for i,cnt in enumerate(contours[:5]):
                     print("---------------------------------",len(cnt),i)
-                    print(cnt)
+                    print(cnt[0])
+                    print(cnt[1])
+                    print(cnt[2])
+                    print(cnt[3])
                     x,y,w,h = cv.boundingRect(cnt)
                     print(x,y,w,h)
                     xc = int(x + w / 2)
