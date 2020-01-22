@@ -28,6 +28,10 @@ def ordering(contour, rows):
     origin = cv.boundingRect(contour)
     return origin[0] * rows # + origin[0]
 
+def get_contour_precedence(contour, cols):
+    tolerance_factor = 10
+    origin = cv.boundingRect(contour)
+    return ((origin[1] // tolerance_factor) * tolerance_factor) * cols + origin[0]
 
 def row_range_list(contours):
 
@@ -42,19 +46,40 @@ def row_range_list(contours):
     
     return range_list
 
+def get_row_list(contours):
+
+    row_list = []
+    col_list = []
+    for cnt in contours:
+        x,y,w,h = cv.boundingRect(cnt)
+        if not col_list:
+            col_list.append((x,y,w,h))
+        elif x > col_list[-1][0]:
+            col_list.append((x,y,w,h))
+        else:
+            row_list.append(tuple(col_list))
+            col_list = []
+            col_list.append((x,y,w,h))
+
+    row_list.append(tuple(col_list)) 
+
+    return tuple(row_list)
+
+
+
 
 
 if __name__ == "__main__":
 
     INPUT_DIR = settings.INBOX
 
-    pdfs = glob.glob(f'{INPUT_DIR}/*.pdf')
+    pdfs = glob.glob(f'{INPUT_DIR}/*229.pdf')
     for pdf in pdfs[:1]:
         print("pdf--",pdf)
         pdf_obj = ReadPdf(pdf)
 
         ############# To read page one  by one ##############
-        for pg_num in range(1,pdf_obj.num_of_pages())[2:3]:
+        for pg_num in range(pdf_obj.num_of_pages())[2:3]:
 
             img,status = pdf_obj.read_page(pg_num)
             if status:
@@ -84,43 +109,52 @@ if __name__ == "__main__":
                 # cv.imwrite(f'{outbox}/pg-{pg_num}-no_grid.png',no_grid)
                 # cv.imwrite(f'{outbox}/pg-{pg_num}-inverted_table.png',inverted_table)
 
-                # print(inverted_table)
                 contours, hierarchy = cv.findContours(inverted_table, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
-                print("contours---",len(contours))
 
                 contours = list(filter(lambda x: len(x) > 2, contours))
-                contours.sort(key=lambda x:ordering(x, img.shape[0]))
-                row_range_list = row_range_list(contours)
-                table = dict.fromkeys(row_range_list,[])
+                contours.sort(key=lambda x:get_contour_precedence(x, img.shape[1]))
 
-                for tup_range,value_list in table.items():
-                    table[tup_range] = list(filter(lambda cnt: tup_range[0] <  math.ceil(( cnt[0][0][1]+ cnt[1][0][1])/2)  < tup_range[1], contours ))
+                row_list = get_row_list(contours)
+                for row in row_list:
+                    print(f"{row}--{len(row)}")
+                    for x,y,w,h in row:
+                        print( x,y,w,h)
+                        # show_wait_destroy(f'test',img[y:y+h,x:x+w])
+
+                print(len(row_list))
+
+                # ------------------------------------------------------- #
+                # Under testing
+                # contours.sort(key=lambda x:ordering(x, img.shape[0]))
+                # row_range_list = row_range_list(contours)
+                # table = dict.fromkeys(row_range_list,[])
+
+                # for tup_range,value_list in table.items():
+                #     table[tup_range] = list(filter(lambda cnt: tup_range[0] <  math.ceil(( cnt[0][0][1]+ cnt[1][0][1])/2)  < tup_range[1], contours ))
+                # -------------------------------------------------------- #
                 
-                pprint(table)
-                for k,v in table.items():
-                    print(k,len(v))
+                # pprint(table)
+                # for k,v in table.items():
+                #     print(k,len(v))
 
-# math.ceil((54+109)/2)
+
+
 
                 print(len(contours))
-                # contours = list(map(lambda x: len(x) > 2, contours))
-                # contours.sort(key=lambda x:get_contour_precedence(x, img.shape[1]))
-                # contours.sort(key=lambda x:get_contour_precedence2(x, img.shape[1]))
-
                 cv.drawContours(img, contours, -1, (0,255,0), -1)
-                for i,cnt in enumerate(contours[:5]):
-                    print("---------------------------------",len(cnt),i)
-                    print(cnt[0])
-                    print(cnt[1])
-                    print(cnt[2])
-                    print(cnt[3])
+                for i,cnt in enumerate(contours):
+                    # print("---------------------------------",len(cnt),i)
+                    # print(cnt[0])
+                    # print(cnt[1])
+                    # print(cnt[2])
+                    # print(cnt[3])
                     x,y,w,h = cv.boundingRect(cnt)
-                    print(x,y,w,h)
+                    # print(x,y,w,h)
                     xc = int(x + w / 2)
                     yc = int(y + h / 2)
                     cv.putText(img, str(i), (xc,yc), cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
                 
-                cv.imwrite(f'{outbox}/pg-{pg_num}-img.png',img)
+                cv.imwrite(f'{outbox}/pg-{pg_num}-detection.png',img)
                 show_wait_destroy('img',img)
 
 
