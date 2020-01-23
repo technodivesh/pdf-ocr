@@ -16,7 +16,9 @@ def show_wait_destroy(winname, img):
 class PDFpage():
 
     def __init__(self, img):
-        self.img = img 
+
+        self.img = img
+        self.gray = '' 
 
     def fix_page_orientation(self):
             
@@ -52,13 +54,15 @@ class PDFpage():
             self.img = cv.warpAffine(self.img, M, (nW, nH))
 
             self.set_image(self.img)
-            return self.img
+            
+            # return self.img
 
     def get_image(self):
         return self.img
 
     def set_image(self,img):
         self.img = img
+        self.gray = cv.cvtColor(img,cv.COLOR_BGR2GRAY)
 
     def closed_grid(self,grid):
         "It enclosed the grid in a rectangular box"
@@ -118,17 +122,11 @@ class PDFpage():
         grid = cv.add(grid,mask)
         return grid
 
-    def get_grid(self,src):
+    def get_grid(self):
         " It returns org_gray,table,head,no_grid"
 
-        src = self.img  
-        cv.imshow('src',src)
-
-        # Transform source image to gray if it is not already
-        if len(src.shape) != 2:
-            gray = cv.cvtColor(src, cv.COLOR_BGR2GRAY)
-        else:
-            gray = src
+        gray = self.gray  
+        cv.imshow('gray',self.gray)
 
         org_gray = gray.copy()
         # Show gray image
@@ -240,3 +238,12 @@ class PDFpage():
 
         print(distance)
         return distance
+
+
+    def table_cell_list(self,table_bbs,img):
+
+        image_list = []
+        for row_tup in table_bbs:
+            image_list.append(tuple([self.gray[y:y+h,x:x+w] for (x,y,w,h) in row_tup]))
+
+        return tuple(image_list)

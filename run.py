@@ -7,6 +7,9 @@ import cv2 as cv
 from matplotlib import pyplot as plt 
 import os
 import math
+import statistics 
+from pytesseract import image_to_string
+
 
 import settings
 
@@ -73,7 +76,8 @@ if __name__ == "__main__":
 
     INPUT_DIR = settings.INBOX
 
-    pdfs = glob.glob(f'{INPUT_DIR}/*229.pdf')
+    # pdfs = glob.glob(f'{INPUT_DIR}/*229.pdf')
+    pdfs = glob.glob(f'{INPUT_DIR}/22123708.pdf')
     for pdf in pdfs[:1]:
         print("pdf--",pdf)
         pdf_obj = ReadPdf(pdf)
@@ -88,7 +92,9 @@ if __name__ == "__main__":
 
                 img = pdfPageObj.get_image()  # cv image with fixed orientation
 
-                gray,table,inverted_table,head,no_grid = pdfPageObj.get_grid(img)
+                
+                gray,table,inverted_table,head,no_grid = pdfPageObj.get_grid()
+                # pdfPageObj.get_grid()
 
                 # show_wait_destroy('gray',gray)
                 # show_wait_destroy('table',table)
@@ -114,14 +120,53 @@ if __name__ == "__main__":
                 contours = list(filter(lambda x: len(x) > 2, contours))
                 contours.sort(key=lambda x:get_contour_precedence(x, img.shape[1]))
 
-                row_list = get_row_list(contours)
-                for row in row_list:
-                    print(f"{row}--{len(row)}")
-                    for x,y,w,h in row:
-                        print( x,y,w,h)
-                        # show_wait_destroy(f'test',img[y:y+h,x:x+w])
 
-                print(len(row_list))
+                print(len(contours))
+                cv.drawContours(img, contours, -1, (0,255,0), -1)
+                for i,cnt in enumerate(contours):
+                    x,y,w,h = cv.boundingRect(cnt)
+                    # print(x,y,w,h)
+                    xc = int(x + w / 2)
+                    yc = int(y + h / 2)
+                    cv.putText(img, str(i), (xc,yc), cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
+                
+                cv.imwrite(f'{outbox}/pg-{pg_num}-detection.png',img)
+                show_wait_destroy('img',img)
+
+                # table cell bb
+                table_cells_bbs = get_row_list(contours) # tuple of bounding boxes
+
+                no_of_data_cols = statistics.mode([len(row) for row in table_cells_bbs])
+                print('no_of_data_cols--',no_of_data_cols)
+
+                # exit()
+                # table cells img
+                table_cells_imgs = pdfPageObj.table_cell_list(table_cells_bbs,img)  # tuple of cell images
+                table_cells_imgs = filter(lambda x: len(x) == no_of_data_cols,table_cells_imgs)
+                # show_wait_destroy(f'test',table_cells_imgs[1][1])
+
+                for cell_img_row in table_cells_imgs:
+
+                    print("=================--*texts--==============")
+                    texts = map(image_to_string,cell_img_row)
+                    print("--*texts--", *texts)
+
+                    # print("------")
+                    # cell_img[cell_img > 200] = 255
+                    # print("Without thresh---",image_to_string(cell_img))
+                    # show_wait_destroy(f'cell_img',cell_img)
+
+                    # # ret,thresh1 = cv.threshold(cell_img,150,255,cv.THRESH_BINARY)
+                    # ret,thresh3 = cv.threshold(cell_img,127,255,cv.THRESH_TRUNC)
+                    # print("With thresh---",image_to_string(thresh3))
+                    # show_wait_destroy(f'thresh3',thresh3)
+                    
+
+                    # show_wait_destroy(f'cell',cell_img)
+
+
+
+                # print(len(row_list))
 
                 # ------------------------------------------------------- #
                 # Under testing
@@ -132,30 +177,20 @@ if __name__ == "__main__":
                 # for tup_range,value_list in table.items():
                 #     table[tup_range] = list(filter(lambda cnt: tup_range[0] <  math.ceil(( cnt[0][0][1]+ cnt[1][0][1])/2)  < tup_range[1], contours ))
                 # -------------------------------------------------------- #
+
+
+
+                # print(len(contours))
+                # cv.drawContours(img, contours, -1, (0,255,0), -1)
+                # for i,cnt in enumerate(contours):
+                #     x,y,w,h = cv.boundingRect(cnt)
+                #     # print(x,y,w,h)
+                #     xc = int(x + w / 2)
+                #     yc = int(y + h / 2)
+                #     cv.putText(img, str(i), (xc,yc), cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
                 
-                # pprint(table)
-                # for k,v in table.items():
-                #     print(k,len(v))
-
-
-
-
-                print(len(contours))
-                cv.drawContours(img, contours, -1, (0,255,0), -1)
-                for i,cnt in enumerate(contours):
-                    # print("---------------------------------",len(cnt),i)
-                    # print(cnt[0])
-                    # print(cnt[1])
-                    # print(cnt[2])
-                    # print(cnt[3])
-                    x,y,w,h = cv.boundingRect(cnt)
-                    # print(x,y,w,h)
-                    xc = int(x + w / 2)
-                    yc = int(y + h / 2)
-                    cv.putText(img, str(i), (xc,yc), cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
-                
-                cv.imwrite(f'{outbox}/pg-{pg_num}-detection.png',img)
-                show_wait_destroy('img',img)
+                # cv.imwrite(f'{outbox}/pg-{pg_num}-detection.png',img)
+                # show_wait_destroy('img',img)
 
 
 
