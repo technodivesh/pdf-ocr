@@ -126,7 +126,7 @@ class PDFpage():
         " It returns org_gray,table,head,no_grid"
 
         gray = self.gray  
-        cv.imshow('gray',self.gray)
+        # cv.imshow('gray',self.gray)
 
         org_gray = gray.copy()
         # Show gray image
