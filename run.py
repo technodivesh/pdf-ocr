@@ -1,3 +1,9 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+__author__      = "Divesh Chandolia"
+
+
 import glob
 from pdf2image import convert_from_path
 from PIL import Image
@@ -73,7 +79,9 @@ if __name__ == "__main__":
 
     INPUT_DIR = settings.INBOX
 
-    pdfs = glob.glob(f'{INPUT_DIR}/*229.pdf')
+    # pdfs = glob.glob(f'{INPUT_DIR}/*229.pdf')
+    pdfs = glob.glob(f'{INPUT_DIR}/*22123708.pdf')
+    
 
     for pdf in pdfs[:1]:
         print("pdf--",pdf)
@@ -118,17 +126,18 @@ if __name__ == "__main__":
             contours = list(filter(lambda x: len(x) > 2, contours))
             contours.sort(key=lambda x:get_contour_precedence(x, img.shape[1]))
 
-            # print(len(contours))
-            # cv.drawContours(img, contours, -1, (0,255,0), -1)
-            # for i,cnt in enumerate(contours):
-            #     x,y,w,h = cv.boundingRect(cnt)
-            #     # print(x,y,w,h)
-            #     xc = int(x + w / 2)
-            #     yc = int(y + h / 2)
-            #     cv.putText(img, str(i), (xc,yc), cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
+            print(len(contours))
+            cv.drawContours(img, contours, -1, (0,255,0), -1)
+            for i,cnt in enumerate(contours):
+                x,y,w,h = cv.boundingRect(cnt)
+                # print(x,y,w,h)
+                xc = int(x + w / 2)
+                yc = int(y + h / 2)
+                cv.putText(img, str(i), (xc,yc), cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
             
-            # cv.imwrite(f'{outbox}/pg-{pg_num}-detection.png',img)
-            # show_wait_destroy('img',img)
+            cv.imwrite(f'{outbox}/pg-{pg_num}-detection.png',img)
+            show_wait_destroy('img',img)
+            # exit()
 
             # table cell bb
             table_cells_bbs = get_row_list(contours) # tuple of bounding boxes
@@ -140,23 +149,23 @@ if __name__ == "__main__":
             table_cells_imgs = filter(lambda x: len(x) == no_of_data_cols,table_cells_imgs)
 
 
-            #------------------ for testing only ------------------#
-            for cell_img_list in list(table_cells_imgs):
-                print(len(cell_img_list))
-                for cell_img in cell_img_list:
-                    print("------")
-                    cell_img[cell_img > 200] = 255
-                    ###############################
-                    ###############################
-                    ###############################
-                    print(image_to_string(cell_img))
-                    ###############################
-                    ###############################
-                    ###############################
-                    show_wait_destroy(f'cell_img',cell_img)
-            cv.destroyAllWindows()
-            exit()
-            #------------------- for testing only ------------------#
+            # #------------------ for testing only ------------------#
+            # for cell_img_list in list(table_cells_imgs):
+            #     print(len(cell_img_list))
+            #     for cell_img in cell_img_list:
+            #         print("------")
+            #         cell_img[cell_img > 200] = 255
+            #         ###############################
+            #         ###############################
+            #         ###############################
+            #         print(image_to_string(cell_img))
+            #         ###############################
+            #         ###############################
+            #         ###############################
+            #         show_wait_destroy(f'cell_img',cell_img)
+            # cv.destroyAllWindows()
+            # exit()
+            # #------------------- for testing only ------------------#
 
             # Create DataFrame
             df = pd.DataFrame(tuple(table_cells_imgs))

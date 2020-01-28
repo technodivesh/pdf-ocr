@@ -1,3 +1,8 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+__author__      = "Divesh Chandolia"
+
 from PyPDF2 import PdfFileReader
 from pdf2image import convert_from_path
 import settings
