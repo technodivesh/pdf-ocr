@@ -15,6 +15,7 @@ import math
 import statistics 
 from pytesseract import image_to_string
 import pandas as pd
+from get_ba_check_details import Cheque
 
 
 import settings
@@ -90,6 +91,22 @@ if __name__ == "__main__":
         ############# To read page one  by one ##############
         COLUMNS = pd.DataFrame()
         result_df = pd.DataFrame()
+
+        check_page_img = pdf_obj.read_page(1)
+
+        show_wait_destroy('check_page_img', check_page_img)
+
+        cheque = Cheque(check_page_img)
+        cheque.fix_page_orientation()
+        cheque.find_cheque_details()
+
+        print('--------------------')
+        print(cheque.amount)
+        print(cheque.number)
+        print(cheque.date)
+        print(cheque.address)
+
+        exit()
 
         for pg_num in range(pdf_obj.num_of_pages())[2:3]:
 
