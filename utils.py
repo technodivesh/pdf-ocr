@@ -25,58 +25,59 @@ class PDFpage():
         self.img = img
         self.gray = '' 
 
+    # def fix_page_orientation(self):
+
+    #     #############################################################
+    #     # rotate the image to deskew it
+    #     angle = -4
+    #     (h, w) = self.img.shape[:2]
+    #     center = (w // 2, h // 2)
+    #     M = cv.getRotationMatrix2D(center, angle, 1.0)
+    #     self.set_image(cv.warpAffine(self.img, M, (w, h),
+    #         flags=cv.INTER_CUBIC, borderMode=cv.BORDER_REPLICATE))
+    #     show_wait_destroy("self.img--",self.img)
+    #     ##############################################################
+
+    #     gray = cv.cvtColor(self.img, cv.COLOR_BGR2GRAY)
+    #     show_wait_destroy("gray--",gray)
+    #     gray = cv.bitwise_not(gray)
+        
+    #     # threshold the image, setting all foreground pixels to
+    #     # 255 and all background pixels to 0
+    #     thresh = cv.threshold(gray, 0, 255,
+    #         cv.THRESH_BINARY | cv.THRESH_OTSU)[1]
+
+        
+    #     # grab the (x, y) coordinates of all pixel values that
+    #     # are greater than zero, then use these coordinates to
+    #     # compute a rotated bounding box that contains all
+    #     # coordinates
+    #     coords = np.column_stack(np.where(thresh > 0))
+    #     angle = cv.minAreaRect(coords)[-1]
+        
+    #     # the `cv2.minAreaRect` function returns values in the
+    #     # range [-90, 0); as the rectangle rotates clockwise the
+    #     # returned angle trends to 0 -- in this special case we
+    #     # need to add 90 degrees to the angle
+    #     if angle < -45:
+    #         angle = -(90 + angle)
+        
+    #     # otherwise, just take the inverse of the angle to make
+    #     # it positive
+    #     else:
+    #         angle = -angle
+
+    #     print(f"angle -- {angle}")
+
+    #     # rotate the image to deskew it
+    #     (h, w) = self.img.shape[:2]
+    #     center = (w // 2, h // 2)
+    #     M = cv.getRotationMatrix2D(center, angle, 1.0)
+    #     self.set_image(cv.warpAffine(self.img, M, (w, h),
+    #         flags=cv.INTER_CUBIC, borderMode=cv.BORDER_REPLICATE))
+
+
     def fix_page_orientation(self):
-
-        #############################################################
-        # rotate the image to deskew it
-        angle = -4
-        (h, w) = self.img.shape[:2]
-        center = (w // 2, h // 2)
-        M = cv.getRotationMatrix2D(center, angle, 1.0)
-        self.set_image(cv.warpAffine(self.img, M, (w, h),
-            flags=cv.INTER_CUBIC, borderMode=cv.BORDER_REPLICATE))
-        show_wait_destroy("self.img--",self.img)
-        ##############################################################
-
-        gray = cv.cvtColor(self.img, cv.COLOR_BGR2GRAY)
-        gray = cv.bitwise_not(gray)
-        
-        # threshold the image, setting all foreground pixels to
-        # 255 and all background pixels to 0
-        thresh = cv.threshold(gray, 0, 255,
-            cv.THRESH_BINARY | cv.THRESH_OTSU)[1]
-
-        
-        # grab the (x, y) coordinates of all pixel values that
-        # are greater than zero, then use these coordinates to
-        # compute a rotated bounding box that contains all
-        # coordinates
-        coords = np.column_stack(np.where(thresh > 0))
-        angle = cv.minAreaRect(coords)[-1]
-        
-        # the `cv2.minAreaRect` function returns values in the
-        # range [-90, 0); as the rectangle rotates clockwise the
-        # returned angle trends to 0 -- in this special case we
-        # need to add 90 degrees to the angle
-        if angle < -45:
-            angle = -(90 + angle)
-        
-        # otherwise, just take the inverse of the angle to make
-        # it positive
-        else:
-            angle = -angle
-
-        print(f"angle -- {angle}")
-
-        # rotate the image to deskew it
-        (h, w) = self.img.shape[:2]
-        center = (w // 2, h // 2)
-        M = cv.getRotationMatrix2D(center, angle, 1.0)
-        self.set_image(cv.warpAffine(self.img, M, (w, h),
-            flags=cv.INTER_CUBIC, borderMode=cv.BORDER_REPLICATE))
-
-
-    def fix_page_orientation_old(self):
             
             osd = pytesseract.image_to_osd(self.img)
             information =  osd.splitlines()
@@ -248,28 +249,20 @@ class PDFpage():
         no_grid = cv.add(org_gray,table)
         no_grid = cv.add(no_grid,head)
 
-        # # Step 1
-        # edges = cv.adaptiveThreshold(table, 255, cv.ADAPTIVE_THRESH_MEAN_C, cv.THRESH_BINARY, 3, -2)
-        # show_wait_destroy("edges", edges)
-        # # Step 2
-        # kernel = np.ones((2, 2), np.uint8)
-        # edges = cv.dilate(edges, kernel)
-        # show_wait_destroy("dilate", edges)
-        # table = edges
-
-        # cv2.erode(img, kernel, iterations=1)
-        # table = cv.erode(table, kernel)
-
 
         table,*xywh = self.closed_grid(table)
         table = self.complete_grid(table,no_grid,*xywh)
-
         inverted_table = self.inverted_table(table,*xywh)
+
+        head,*xywh = self.closed_grid(head)
+        inverted_head = self.inverted_table(head,*xywh)
+
+        
 
 
         # show_wait_destroy("table", table)
 
-        return org_gray,table,inverted_table,head,no_grid
+        return org_gray,table,inverted_table,inverted_head,no_grid
 
 
     def inverted_table(self,table,*xywh):
