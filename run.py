@@ -88,7 +88,6 @@ if __name__ == "__main__":
         print("pdf--",pdf)
         pdf_obj = ReadPdf(pdf)
 
-        ############# To read page one  by one ##############
         COLUMNS = pd.DataFrame()
         result_df = pd.DataFrame()
 
@@ -121,6 +120,7 @@ if __name__ == "__main__":
         # exit()
         Meta = False
 
+        ############# To read page one  by one ##############
         print("pdf_obj.num_of_pages()---", pdf_obj.num_of_pages())
         for pg_num in range(pdf_obj.num_of_pages())[2:]:
 
@@ -134,10 +134,12 @@ if __name__ == "__main__":
             show_wait_destroy('img-cv',img)
 
             
-            gray,table,inverted_table,head,no_grid = pdfPageObj.get_grid()
+            img,gray,table,inverted_table,head,no_grid = pdfPageObj.get_grid()
+            # img = gray
+            # DENOISE IT img
 
             # show_wait_destroy('gray',gray)
-            show_wait_destroy('table',table)
+            show_wait_destroy(f'table-{table.shape}',table)
             show_wait_destroy('head',head)
             # show_wait_destroy('no_grid',no_grid)
             show_wait_destroy('inverted_table',inverted_table)
@@ -185,7 +187,9 @@ if __name__ == "__main__":
             # cv.imwrite(f'{outbox}/pg-{pg_num}-inverted_table.png',inverted_table)
 
             contours, hierarchy = cv.findContours(inverted_table, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
-            contours = list(filter(lambda x: len(x) > 2, contours))
+            contours = list(filter(lambda x: len(x) > 3, contours))
+
+            # contours = (filter( ,contours))
             contours.sort(key=lambda x:get_contour_precedence(x, img.shape[1]))
 
             print(len(contours))
