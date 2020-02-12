@@ -3,7 +3,7 @@ import numpy as np
 from read_pdf import ReadPdf
 import settings
 import glob
-import imutils
+# import imutils
 from pytesseract import image_to_string
 
 
