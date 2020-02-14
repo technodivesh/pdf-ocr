@@ -5,7 +5,7 @@ __author__      = "Divesh Chandolia"
 
 import pytesseract
 import cv2 as cv
-import imutils
+# import imutils
 import numpy as np
 
 DEBUG = False
@@ -288,7 +288,7 @@ class PDFpage():
 
         image_list = []
         for row_tup in table_bbs:
-            image_list.append(tuple([self.gray[y:y+h,x:x+w] for (x,y,w,h) in row_tup]))
+            image_list.append(tuple([self.gray[y-2:y+h,x-2:x+w] for (x,y,w,h) in row_tup]))
             # image_list.append(tuple([img[y:y+h,x:x+w] for (x,y,w,h) in row_tup]))
 
         return tuple(image_list)
