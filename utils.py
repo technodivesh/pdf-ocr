@@ -41,7 +41,7 @@ class PDFpage():
 
         #############################################################
         # rotate the image to deskew it
-        angle = -4
+        angle = 4
         (h, w) = resized.shape[:2]
         center = (w // 2, h // 2)
         M = cv.getRotationMatrix2D(center, angle, 1.0)

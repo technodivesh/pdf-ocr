@@ -19,12 +19,14 @@ from get_ba_check_details import Cheque
 
 
 import settings
+import config
 
 from utils import PDFpage
 from read_pdf import ReadPdf
 from pprint import pprint
 
 DEBUG = settings.DEBUG
+COLS = config.PROFESSIONAL_REMITTANCE_ADVICE.keys()
 
 def show_wait_destroy(winname, img):
     if not DEBUG: return
@@ -82,6 +84,7 @@ if __name__ == "__main__":
 
     # pdfs = glob.glob(f'{INPUT_DIR}/*229.pdf')
     pdfs = glob.glob(f'{INPUT_DIR}/*22123708.pdf')
+    # pdfs = glob.glob(f'{INPUT_DIR}/*731.pdf')
     
 
     for pdf in pdfs[:1]:
@@ -271,3 +274,63 @@ if __name__ == "__main__":
 
     
 
+        # Formating
+        # Update col names 
+        result_df.columns = COLS
+
+        # Replace blank with NaN
+        result_df.replace('',np.nan,inplace=True)
+
+        # Delete blank rows
+        result_df.dropna(axis=0, how='all', thresh=None, subset=None, inplace=True)
+        # df.replace(np.nan,'',inplace=True)
+
+        # df[df.columns[-1]].replace('',np.nan,inplace=True)
+        # Fill last column with values - forward fill
+        result_df[result_df.columns[-1]].fillna(method='bfill',inplace = True)
+
+        # group by last columns value
+        dfs = result_df.groupby(result_df.columns[-1],sort=False)
+
+        # remove single liners from list of df
+        dfs = list(_df.drop(_df.index[-1]) for i,_df in dfs if len(_df)>1)
+
+        for df in dfs:
+            DROP = []
+            CARRIER = ''
+            
+            for i,row in enumerate(list(df.iterrows())): 
+                if df.iloc[i][1:-1].isna().all():
+                    
+                    CARRIER = df.iloc[i][0] 
+                    DROP.append(i)
+
+            if DROP:
+                df.drop(df.index[DROP[0]],inplace=True)
+
+
+        print(dfs)
+        frames = []
+        for df in dfs:
+
+            new_df = pd.DataFrame()
+            for col in COLS:
+                # print(col,config.PROFESSIONAL_REMITTANCE_ADVICE[col],'--',df[col].dropna().tolist())
+            
+                if col == 'PATIENT_OWES':continue
+                if col == 'PROCEDURE__MODIFIER':
+        #             print(df[col].dropna())
+                    PM = df[col].dropna()[:5],df[col].dropna()[5:]
+        #             new_df[config.PROFESSIONAL_REMITTANCE_ADVICE[col]] = pd.DataFrame([df[col].dropna().tolist()])
+                    new_df[config.PROFESSIONAL_REMITTANCE_ADVICE[col]] = pd.DataFrame([PM])
+                else:
+                    new_df[config.PROFESSIONAL_REMITTANCE_ADVICE[col]] = pd.DataFrame([df[col].dropna().tolist() or '']) 
+
+            print(new_df)
+            frames.append(new_df)
+
+
+        # frames = [df for df in dfs]
+        result = pd.concat(frames)
+        result.to_csv(f'{outbox}/{pdfNameOnly}.csv', index=False)
+        print(result)
