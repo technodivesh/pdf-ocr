@@ -13,6 +13,7 @@ from matplotlib import pyplot as plt
 import os
 import math
 import statistics 
+import itertools
 from pytesseract import image_to_string
 import pandas as pd
 from get_ba_check_details import Cheque
@@ -309,28 +310,69 @@ if __name__ == "__main__":
                 df.drop(df.index[DROP[0]],inplace=True)
 
 
-        print(dfs)
-        frames = []
+        # print(dfs)
+        ALL_COLS = list(config.PROFESSIONAL_REMITTANCE_ADVICE.values()) + [(config.PROFESSIONAL_REMITTANCE_ADVICE_CHECK)] + [(config.PROFESSIONAL_REMITTANCE_ADVICE_META)]
+        ALL_COLS = list(itertools.chain.from_iterable(ALL_COLS))
+        
         for df in dfs:
-
-            new_df = pd.DataFrame()
-            for col in COLS:
-                # print(col,config.PROFESSIONAL_REMITTANCE_ADVICE[col],'--',df[col].dropna().tolist())
+        #     print("df--------------")
+        #     df.reset_index()
+            new_df = pd.DataFrame(columns=ALL_COLS)
             
-                if col == 'PATIENT_OWES':continue
-                if col == 'PROCEDURE__MODIFIER':
-        #             print(df[col].dropna())
-                    PM = df[col].dropna()[:5],df[col].dropna()[5:]
-        #             new_df[config.PROFESSIONAL_REMITTANCE_ADVICE[col]] = pd.DataFrame([df[col].dropna().tolist()])
-                    new_df[config.PROFESSIONAL_REMITTANCE_ADVICE[col]] = pd.DataFrame([PM])
-                else:
-                    new_df[config.PROFESSIONAL_REMITTANCE_ADVICE[col]] = pd.DataFrame([df[col].dropna().tolist() or '']) 
+            print("--------------")
+            temp_dict = {}
+            for cb_col in df.columns:
+        #         print(df[cols])
+                if cb_col in ('LASTNAME__PATIENT_ACCOUNT','FIRSTNAME__MEMBER_ID','CLAIM_NUMBER__RECVDDT__SERVPROV'):
+        #             print(df[cb_col].dropna().tolist())
+        #             print(config.PROFESSIONAL_REMITTANCE_ADVICE[cb_col])
+                    temp_dict = {**temp_dict,**dict(list(zip(config.PROFESSIONAL_REMITTANCE_ADVICE[cb_col],df[cb_col].dropna().tolist())))}
+            
+        #     print(df['PROCEDURE__MODIFIER'].tolist())
+        #     print(df.columns[3:])
+            for i in df.index:
+                if df.loc[i][['PROCEDURE__MODIFIER']].isnull().values.any():continue
+        #             print(df.loc[i]['PROCEDURE__MODIFIER':].tolist())
+                for c in df.columns[3:-1]:
+                    if c == 'DATE_OF_SERVICE__FROM_THRU':
+        #                 print(df.loc[i][c])
+                        F,T = df.loc[i][c].split('-') 
+                        F =  str(F) + str(T[-2:])
+                                    
+                        F = ''.join([n for n in F if n.isdigit()])
+                        T = ''.join([n for n in T if n.isdigit()])
+                        
+                        try:
+                            Fd = datetime.datetime.strptime(F[-6:], '%m%d%y').strftime('%m/%d/%y')
+                        except:
+                            Fd = F
+                        try:
+                            Td = datetime.datetime.strptime(T[-6:], '%m%d%y').strftime('%m/%d/%y')
+                        except:
+                            Td = T
+                        print('F--------',F,Fd)
+                        print('T--------',T,Td)
+                        FT = [Fd,Td]
+                        temp_dict = {**temp_dict,**dict(list(zip(config.PROFESSIONAL_REMITTANCE_ADVICE[c],FT)))}
+                    elif c == 'PROCEDURE__MODIFIER':
+                        PM = [df.loc[i][c][:5],df.loc[i][c][5:]]
+                        temp_dict = {**temp_dict,**dict(list(zip(config.PROFESSIONAL_REMITTANCE_ADVICE[c],PM)))}
+                        
+                    else:
+                        DATA = [df.loc[i][c]]
+                        temp_dict = {**temp_dict,**dict(list(zip(config.PROFESSIONAL_REMITTANCE_ADVICE[c],DATA)))}
+                        
 
-            print(new_df)
-            frames.append(new_df)
+        #         pprint(temp_dict)            
+                new_df = new_df.append(temp_dict,ignore_index=True)
+
+                    
 
 
-        # frames = [df for df in dfs]
+        #     print(new_df)
+        frames.append(new_df)
+            
         result = pd.concat(frames)
+
         result.to_csv(f'{outbox}/{pdfNameOnly}.csv', index=False)
         print(result)

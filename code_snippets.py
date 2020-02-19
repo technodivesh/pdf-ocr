@@ -21,3 +21,20 @@ dfs = df.groupby(df.columns[-1],sort=False)
 
 dfs = list(_df.drop(_df.index[-1]) for i,_df in dfs if len(_df)>1)
 
+for df in dfs:
+    DROP = []
+    CARRIER = ''
+    
+    for i,row in enumerate(list(df.iterrows())): 
+        if df.iloc[i][1:-1].isna().all():
+            
+            CARRIER = df.iloc[i][0] 
+            DROP.append(i)
+
+    if DROP:
+        df.drop(df.index[DROP[0]],inplace=True)
+
+
+print(dfs)
+frames = [df for df in dfs]
+result = pd.concat(frames)
