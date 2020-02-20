@@ -42,7 +42,7 @@ def ordering(contour, rows):
     return origin[0] * rows # + origin[0]
 
 def get_contour_precedence(contour, cols):
-    tolerance_factor = 10
+    tolerance_factor = 15
     origin = cv.boundingRect(contour)
     return ((origin[1] // tolerance_factor) * tolerance_factor) * cols + origin[0]
 
@@ -77,6 +77,10 @@ def get_row_list(contours):
     row_list.append(tuple(col_list)) 
 
     return tuple(row_list)
+
+def image_to_string_demo(img):
+    return "divesh"
+
 
 
 if __name__ == "__main__":
@@ -116,7 +120,9 @@ if __name__ == "__main__":
         # print(cheque.address)
 
         data = [[cheque.amount,cheque.number,cheque.date,cheque.address]]
-        cheque_df = pd.DataFrame(data, columns = ['Amount', 'Number','Date','Address']) 
+        cheque_df = pd.DataFrame(data, columns = config.PROFESSIONAL_REMITTANCE_ADVICE_CHECK) 
+        # cheque_df = pd.DataFrame(data, columns = ['Amount', 'Number','Date','Address']) 
+        cheque_dict = {key:val[0] for key,val in cheque_df.to_dict().items()}
         print(cheque_df)
 
         #------ Cheque Info ---------#
@@ -175,8 +181,14 @@ if __name__ == "__main__":
                 meta_df = pd.DataFrame(tuple(table_cells_imgs))
                 meta_df = meta_df.applymap(image_to_string)
                 # convert Col to header
+                # meta_df = pd.DataFrame([list(meta_df[1])], columns = list(meta_df[0])) 
                 meta_df = pd.DataFrame([list(meta_df[1])], columns = list(meta_df[0])) 
-                # print(meta_df)
+                print(meta_df)
+                _meta_df = meta_df.copy()
+                # _meta_df.columns = config.PROFESSIONAL_REMITTANCE_ADVICE_META
+                print(_meta_df)
+                meta_dict = {key:val[0] for key,val in _meta_df.to_dict().items()}
+
                 Meta = True
 
             # ----------- Page Head Info ----------#
@@ -220,8 +232,9 @@ if __name__ == "__main__":
 
 
             # #------------------ for testing only ------------------#
-            # for cell_img_list in list(table_cells_imgs)[20:]:
+            # for cell_img_list in list(table_cells_imgs)[14:]:
             #     print(len(cell_img_list))
+            #     show_wait_destroy("np.hstack--",np.hstack([img for img in cell_img_list]))
             #     for cell_img in cell_img_list:
             #         print("------")
             #         cell_img[cell_img > 200] = 255
@@ -259,8 +272,10 @@ if __name__ == "__main__":
             result_df = result_df.append(df,ignore_index=True)
 
         result_df.columns = COLUMNS
-        
 
+
+        
+        print("-------- Saving XLS file Start -----------")
         # Create a Pandas Excel writer using XlsxWriter as the engine.
         writer = pd.ExcelWriter(f'{outbox}/{pdfNameOnly}.xlsx', engine='xlsxwriter')
 
@@ -268,13 +283,14 @@ if __name__ == "__main__":
         result_df.to_excel(writer, sheet_name='PCP-Information',header=True, index=False)
         cheque_df.to_excel(writer, sheet_name='Cheque',header=True, index=False)
         meta_df.to_excel(writer, sheet_name='Meta',header=True, index=False)
-        # result_df.to_excel(writer, sheet_name='Test Sheet',header=True, index=False)
 
         # Close the Pandas Excel writer and output the Excel file.
         writer.save()
+        print("-------- Saving XLS file Done -----------")
+
 
     
-
+        print("-------- Formating for CSV -----------")
         # Formating
         # Update col names 
         result_df.columns = COLS
@@ -284,9 +300,7 @@ if __name__ == "__main__":
 
         # Delete blank rows
         result_df.dropna(axis=0, how='all', thresh=None, subset=None, inplace=True)
-        # df.replace(np.nan,'',inplace=True)
 
-        # df[df.columns[-1]].replace('',np.nan,inplace=True)
         # Fill last column with values - forward fill
         result_df[result_df.columns[-1]].fillna(method='bfill',inplace = True)
 
@@ -296,6 +310,8 @@ if __name__ == "__main__":
         # remove single liners from list of df
         dfs = list(_df.drop(_df.index[-1]) for i,_df in dfs if len(_df)>1)
 
+        ##################################################################
+        # getting Carreir Name 
         for df in dfs:
             DROP = []
             CARRIER = ''
@@ -308,20 +324,21 @@ if __name__ == "__main__":
 
             if DROP:
                 df.drop(df.index[DROP[0]],inplace=True)
+        ##################################################################
 
 
         # print(dfs)
         ALL_COLS = list(config.PROFESSIONAL_REMITTANCE_ADVICE.values()) + [(config.PROFESSIONAL_REMITTANCE_ADVICE_CHECK)] + [(config.PROFESSIONAL_REMITTANCE_ADVICE_META)]
         ALL_COLS = list(itertools.chain.from_iterable(ALL_COLS))
         
+        frames = []
         for df in dfs:
-        #     print("df--------------")
-        #     df.reset_index()
+
             new_df = pd.DataFrame(columns=ALL_COLS)
             
-            print("--------------")
             temp_dict = {}
-            for cb_col in df.columns:
+
+            for cb_col in df.columns: # cb is conbined column
         #         print(df[cols])
                 if cb_col in ('LASTNAME__PATIENT_ACCOUNT','FIRSTNAME__MEMBER_ID','CLAIM_NUMBER__RECVDDT__SERVPROV'):
         #             print(df[cb_col].dropna().tolist())
@@ -335,8 +352,14 @@ if __name__ == "__main__":
         #             print(df.loc[i]['PROCEDURE__MODIFIER':].tolist())
                 for c in df.columns[3:-1]:
                     if c == 'DATE_OF_SERVICE__FROM_THRU':
-        #                 print(df.loc[i][c])
-                        F,T = df.loc[i][c].split('-') 
+                        print(df.loc[i][c])
+                        try:
+                            F,T = df.loc[i][c].split('-') 
+                        except:
+                            F,T = df.loc[i][c].split('~') 
+                        # finally:
+                        #     F,T = df.loc[i][c].split(' ')
+
                         F =  str(F) + str(T[-2:])
                                     
                         F = ''.join([n for n in F if n.isdigit()])
@@ -363,14 +386,16 @@ if __name__ == "__main__":
                         temp_dict = {**temp_dict,**dict(list(zip(config.PROFESSIONAL_REMITTANCE_ADVICE[c],DATA)))}
                         
 
-        #         pprint(temp_dict)            
+#               pprint(temp_dict)
+                temp_dict = {**temp_dict,**cheque_dict}
+                temp_dict = {**temp_dict,**meta_dict}            
                 new_df = new_df.append(temp_dict,ignore_index=True)
 
                     
 
 
-        #     print(new_df)
-        frames.append(new_df)
+            #     print(new_df)
+            frames.append(new_df)
             
         result = pd.concat(frames)
 

@@ -1,11 +1,12 @@
+
+
+
 import cv2 as cv
 import numpy as np
 from read_pdf import ReadPdf
 import settings
 import glob
-# import imutils
 from pytesseract import image_to_string
-
 
 
 DEBUG = False

@@ -29,7 +29,7 @@ class PDFpage():
 
     def fix_page_orientation(self):
 
-        print("111111111111111",self.img.shape)
+        # print("111111111111111",self.img.shape)
         scale_percent = 200 # percent of original size
         width = int(self.img.shape[1] * scale_percent / 100)
         height = int(self.img.shape[0] * scale_percent / 100)
@@ -37,7 +37,7 @@ class PDFpage():
         # resize image
         resized = cv.resize(self.img, dim, interpolation = cv.INTER_AREA)
 
-        print("2222222222222",resized.shape)
+        # print("2222222222222",resized.shape)
 
         #############################################################
         # rotate the image to deskew it
@@ -96,7 +96,7 @@ class PDFpage():
         # resize image
         resized_back = cv.resize(resized, dim, interpolation = cv.INTER_AREA)
 
-        print("33333333",resized_back.shape)
+        # print("33333333",resized_back.shape)
         self.set_image(resized_back)
 
 
@@ -111,7 +111,7 @@ class PDFpage():
         "It enclosed the grid in a rectangular box"
 
         contours, hierarchy = cv.findContours(grid, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)
-        print(type(contours), len(contours))
+        # print(type(contours), len(contours))
 
         largest_c = max(contours, key = cv.contourArea)
         x,y,w,h = cv.boundingRect(largest_c)
