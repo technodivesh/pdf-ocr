@@ -107,6 +107,55 @@ class PDFpage():
         self.img = img
         self.gray = cv.cvtColor(img,cv.COLOR_BGR2GRAY)
 
+    def remove_small_hlines(self,temp,w):
+
+        # show_wait_destroy(f'temp--{w}',temp)
+        # Apply adaptiveThreshold at the bitwise_not of gray, notice the ~ symbol
+        gray = cv.bitwise_not(temp)
+        thresh = cv.adaptiveThreshold(gray, 255, cv.ADAPTIVE_THRESH_MEAN_C, \
+                                    cv.THRESH_BINARY, 15, -2)
+
+        # ret, thresh = cv.threshold(gray, 50, 255, cv.THRESH_BINARY)
+        # show_wait_destroy('thresh--test',thresh)
+
+
+        show_wait_destroy('thresh--1',thresh)
+        # Show binary image
+
+        # testing
+        kernel = np.ones((3,3), np.uint8) 
+        thresh = cv.dilate(thresh, kernel)
+
+        show_wait_destroy("thresh", thresh)
+        # print(thresh)
+        # [bin]
+        # [init]
+        # Create the images that will use to extract the horizontal and vertical lines
+        horizontal = np.copy(thresh)
+        # vertical = np.copy(thresh)
+
+        # Specify size on horizontal axis
+        cols = horizontal.shape[1]
+        horizontal_size = w // 30
+        # Create structure element for extracting horizontal lines through morphology operations
+        horizontalStructure = cv.getStructuringElement(cv.MORPH_RECT, (horizontal_size, 3))
+        # Apply morphology operations
+        show_wait_destroy("horizontalStructure", horizontalStructure)
+        horizontal = cv.erode(horizontal, horizontalStructure)
+        show_wait_destroy("horizontal", horizontal)
+        horizontal = cv.dilate(horizontal, horizontalStructure,iterations = 2)
+        # Show extracted horizontal lines
+
+        show_wait_destroy('--horizontal',horizontal)
+        temp = cv.add(temp,horizontal)
+        # cv.imwrite(f'/home/root1/AllErrorFiles/testoutbox/22123708/horizontal.png',horizontal)
+        # cv.imwrite(f'/home/root1/AllErrorFiles/testoutbox/22123708/temp.png',temp)
+
+        return temp
+
+
+
+
     def closed_grid(self,grid):
         "It enclosed the grid in a rectangular box"
 
@@ -131,6 +180,10 @@ class PDFpage():
 
         # print(grid[y+1,x+1])     # row, col
         temp = cv.add(grid,img)   # temp is the binary image
+        # show_wait_destroy('-temp-',temp)
+
+        temp = self.remove_small_hlines(temp,w)
+
 
         ####################### creating horizontal lines -start ###################
         height,width = grid.shape[:2]
@@ -235,9 +288,9 @@ class PDFpage():
         table = cv.dilate(table, kernel)
         head = cv.dilate(head, kernel)
 
-        # show_wait_destroy('org_gray---',org_gray)
-        # show_wait_destroy('table---', table)
-        # show_wait_destroy('head---', head)
+        show_wait_destroy('org_gray---',org_gray)
+        show_wait_destroy('table---', table)
+        show_wait_destroy('head---', head)
         no_grid = cv.add(org_gray,table)
         no_grid = cv.add(no_grid,head)
 

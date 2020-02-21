@@ -42,9 +42,19 @@ def ordering(contour, rows):
     return origin[0] * rows # + origin[0]
 
 def get_contour_precedence(contour, cols):
+    
     tolerance_factor = 15
     origin = cv.boundingRect(contour)
+    # print( f"(( {origin[1]} // {tolerance_factor}) * {tolerance_factor}) * {cols} + {origin[0]}" )
+    # print(((origin[1] // tolerance_factor) * tolerance_factor) * cols + origin[0])
     return ((origin[1] // tolerance_factor) * tolerance_factor) * cols + origin[0]
+
+def get_bb_precedence(bb,cols):
+
+    tolerance_factor = 15
+    return ((bb[1] // tolerance_factor) * tolerance_factor) * cols + bb[0]
+
+
 
 def row_range_list(contours):
 
@@ -78,6 +88,11 @@ def get_row_list(contours):
 
     return tuple(row_list)
 
+def get_bb_array(contours):
+    
+    # (x,y,w,h )
+    return ( cv.boundingRect(cnt) for cnt in contours )
+
 def image_to_string_demo(img):
     return "divesh"
 
@@ -106,26 +121,27 @@ if __name__ == "__main__":
         if not os.path.exists(outbox):
             os.makedirs(outbox)
 
-        #------ Cheque Info -----------#
-        check_page_img,status = pdf_obj.read_page(1)
-        # show_wait_destroy('check_page_img', check_page_img)
-        cheque = Cheque(check_page_img)
-        cheque.fix_page_orientation()
-        cheque.find_cheque_details()
+        # #------ Cheque Info -----------#
+        # cheque_dict ={}
+        # check_page_img,status = pdf_obj.read_page(1)
+        # # show_wait_destroy('check_page_img', check_page_img)
+        # cheque = Cheque(check_page_img)
+        # cheque.fix_page_orientation()
+        # cheque.find_cheque_details()
 
-        # print('--------------------')
-        # print(cheque.amount)
-        # print(cheque.number)
-        # print(cheque.date)
-        # print(cheque.address)
+        # # print('--------------------')
+        # # print(cheque.amount)
+        # # print(cheque.number)
+        # # print(cheque.date)
+        # # print(cheque.address)
 
-        data = [[cheque.amount,cheque.number,cheque.date,cheque.address]]
-        cheque_df = pd.DataFrame(data, columns = config.PROFESSIONAL_REMITTANCE_ADVICE_CHECK) 
-        # cheque_df = pd.DataFrame(data, columns = ['Amount', 'Number','Date','Address']) 
-        cheque_dict = {key:val[0] for key,val in cheque_df.to_dict().items()}
-        print(cheque_df)
+        # data = [[cheque.amount,cheque.number,cheque.date,cheque.address]]
+        # cheque_df = pd.DataFrame(data, columns = config.PROFESSIONAL_REMITTANCE_ADVICE_CHECK) 
+        # # cheque_df = pd.DataFrame(data, columns = ['Amount', 'Number','Date','Address']) 
+        # cheque_dict = {key:val[0] for key,val in cheque_df.to_dict().items()}
+        # print(cheque_df)
 
-        #------ Cheque Info ---------#
+        # #------ Cheque Info ---------#
 
         # exit()
         Meta = False
@@ -142,6 +158,7 @@ if __name__ == "__main__":
 
             img = pdfPageObj.get_image()  # cv image with fixed orientation
             show_wait_destroy('img-cv',img)
+            meta_dict = {}
 
             
             img,gray,table,inverted_table,head,no_grid = pdfPageObj.get_grid()
@@ -149,54 +166,54 @@ if __name__ == "__main__":
             # DENOISE IT img
 
             # show_wait_destroy('gray',gray)
-            show_wait_destroy(f'table-{table.shape}',table)
-            show_wait_destroy('head',head)
+            # show_wait_destroy(f'table-{table.shape}',table)
+            # show_wait_destroy('head',head)
             # show_wait_destroy('no_grid',no_grid)
-            show_wait_destroy('inverted_table',inverted_table)
+            # show_wait_destroy('inverted_table',inverted_table)
 
-            # ----------- Page Head Info ----------#
-            if not Meta:
-                contours, hierarchy = cv.findContours(head, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
-                contours = list(filter(lambda x: len(x) > 2, contours))
-                contours.sort(key=lambda x:get_contour_precedence(x, img.shape[1]))
+            # # ----------- Page Head Info ----------#
+            # if not Meta:
+            #     contours, hierarchy = cv.findContours(head, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+            #     contours = list(filter(lambda x: len(x) > 2, contours))
+            #     contours.sort(key=lambda x:get_contour_precedence(x, img.shape[1]))
 
-                print(len(contours))
-                cv.drawContours(img, contours, -1, (0,255,0), -1)
-                for i,cnt in enumerate(contours):
-                    x,y,w,h = cv.boundingRect(cnt)
-                    # print(x,y,w,h)
-                    xc = int(x + w / 2)
-                    yc = int(y + h / 2)
-                    cv.putText(img, str(i), (xc,yc), cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
+            #     print(len(contours))
+            #     cv.drawContours(img, contours, -1, (0,255,0), -1)
+            #     for i,cnt in enumerate(contours):
+            #         x,y,w,h = cv.boundingRect(cnt)
+            #         # print(x,y,w,h)
+            #         xc = int(x + w / 2)
+            #         yc = int(y + h / 2)
+            #         cv.putText(img, str(i), (xc,yc), cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
                 
-                cv.imwrite(f'{outbox}/pg-{pg_num}-head-detection.png',img)
-                show_wait_destroy('head-img',img)
+            #     cv.imwrite(f'{outbox}/pg-{pg_num}-head-detection.png',img)
+            #     show_wait_destroy('head-img',img)
 
-                table_cells_bbs = get_row_list(contours) # tuple of bounding boxes
-                no_of_data_cols = statistics.mode([len(row) for row in table_cells_bbs])
+            #     table_cells_bbs = get_row_list(contours) # tuple of bounding boxes
+            #     no_of_data_cols = statistics.mode([len(row) for row in table_cells_bbs])
 
-                table_cells_imgs = pdfPageObj.table_cell_list(table_cells_bbs,img)  # tuple of cell images
-                table_cells_imgs = filter(lambda x: len(x) == no_of_data_cols,table_cells_imgs)
+            #     table_cells_imgs = pdfPageObj.table_cell_list(table_cells_bbs,img)  # tuple of cell images
+            #     table_cells_imgs = filter(lambda x: len(x) == no_of_data_cols,table_cells_imgs)
 
-                meta_df = pd.DataFrame(tuple(table_cells_imgs))
-                meta_df = meta_df.applymap(image_to_string)
-                # convert Col to header
-                # meta_df = pd.DataFrame([list(meta_df[1])], columns = list(meta_df[0])) 
-                meta_df = pd.DataFrame([list(meta_df[1])], columns = list(meta_df[0])) 
-                print(meta_df)
-                _meta_df = meta_df.copy()
-                # _meta_df.columns = config.PROFESSIONAL_REMITTANCE_ADVICE_META
-                print(_meta_df)
-                meta_dict = {key:val[0] for key,val in _meta_df.to_dict().items()}
+            #     meta_df = pd.DataFrame(tuple(table_cells_imgs))
+            #     meta_df = meta_df.applymap(image_to_string)
+            #     # convert Col to header
+            #     # meta_df = pd.DataFrame([list(meta_df[1])], columns = list(meta_df[0])) 
+            #     meta_df = pd.DataFrame([list(meta_df[1])], columns = list(meta_df[0])) 
+            #     print(meta_df)
+            #     _meta_df = meta_df.copy()
+            #     # _meta_df.columns = config.PROFESSIONAL_REMITTANCE_ADVICE_META
+            #     print(_meta_df)
+            #     meta_dict = {key:val[0] for key,val in _meta_df.to_dict().items()}
 
-                Meta = True
+            #     Meta = True
 
-            # ----------- Page Head Info ----------#
+            # # ----------- Page Head Info ----------#
             # exit()
 
 
             # cv.imwrite(f'{outbox}/pg-{pg_num}-first.png',img)
-            # cv.imwrite(f'{outbox}/pg-{pg_num}-gray.png',gray)
+            cv.imwrite(f'{outbox}/pg-{pg_num}-gray.png',gray)
             # cv.imwrite(f'{outbox}/pg-{pg_num}-table.png',table)
             # cv.imwrite(f'{outbox}/pg-{pg_num}-head.png',head)
             # cv.imwrite(f'{outbox}/pg-{pg_num}-no_grid.png',no_grid)
@@ -206,12 +223,40 @@ if __name__ == "__main__":
             contours = list(filter(lambda x: len(x) > 3, contours))
 
             # contours = (filter( ,contours))
-            contours.sort(key=lambda x:get_contour_precedence(x, img.shape[1]))
+            # contours.sort(key=lambda x:get_contour_precedence(x, img.shape[1]))
 
             print(len(contours))
-            cv.drawContours(img, contours, -1, (0,255,0), -1)
+            # cv.drawContours(img, contours, -1, (0,255,0), -1)
+            
+            bb_array = get_bb_array(contours)
+            bb_array = list(bb_array)
+            bb_array.sort(key=lambda x:get_bb_precedence(x, img.shape[1]))
+            # print(list(bb_array))
+
+            for i, (x,y,w,h) in enumerate(list(bb_array)):
+                # print(x,y,w,h)
+                start_point = (x, y) 
+                end_point = (x+w, y+h-1) 
+                color = (0, 255, 0) 
+                thickness = -1
+                cv.rectangle(img, start_point, end_point, color, thickness) 
+                xc = int(x + w / 2)
+                yc = int(y + h / 2)
+                cv.putText(img, str(i), (xc,yc), cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
+
+            cv.imwrite(f'{outbox}/pg-{pg_num}-bb-table.png',img)
+            # show_wait_destroy('img',img)
+            # exit()
+
             for i,cnt in enumerate(contours):
                 x,y,w,h = cv.boundingRect(cnt)
+                # -------------------------------------------# 
+                start_point = (x, y) 
+                end_point = (x+w, y+h-2) 
+                color = (255, 0, 0) 
+                thickness = -1
+                cv.rectangle(img, start_point, end_point, color, thickness) 
+                # -------------------------------------------# 
                 # print(x,y,w,h)
                 xc = int(x + w / 2)
                 yc = int(y + h / 2)
@@ -257,7 +302,7 @@ if __name__ == "__main__":
             ###############################
             ###############################
             ###############################
-            df = df.applymap(image_to_string)
+            df = df.applymap(image_to_string_demo)
             ###############################
             ###############################
             ###############################
@@ -355,10 +400,15 @@ if __name__ == "__main__":
                         print(df.loc[i][c])
                         try:
                             F,T = df.loc[i][c].split('-') 
-                        except:
-                            F,T = df.loc[i][c].split('~') 
-                        # finally:
+                        # except Exception as e:
+                        #     print('e--1',e)
+                        #     F,T = df.loc[i][c].split('~') 
+                        # except Exception as e:
+                        #     print('e--2',e)
                         #     F,T = df.loc[i][c].split(' ')
+                        except Exception as e:
+                            print('e--3',e)
+                            F,T = ['121212','121212']
 
                         F =  str(F) + str(T[-2:])
                                     
